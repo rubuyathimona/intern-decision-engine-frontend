@@ -9,6 +9,7 @@ import 'package:inbank_frontend/widgets/national_id_field.dart';
 
 import '../api_service.dart';
 import '../colors.dart';
+import '../age_utils.dart';
 
 // LoanForm is a StatefulWidget that displays a loan application form.
 class LoanForm extends StatefulWidget {
@@ -32,24 +33,32 @@ class _LoanFormState extends State<LoanForm> {
   // Only submits if the form inputs are validated.
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      final result = await _apiService.requestLoanDecision(
-          _nationalId, _loanAmount, _loanPeriod);
-      setState(() {
-        int tempAmount = int.parse(result['loanAmount'].toString());
-        int tempPeriod = int.parse(result['loanPeriod'].toString());
+      if(!isInvalidAgeForGivenId(_nationalId)) {
+        final result = await _apiService.requestLoanDecision(
+            _nationalId, _loanAmount, _loanPeriod);
 
-        if (tempAmount <= _loanAmount || tempPeriod > _loanPeriod) {
-          _loanAmountResult = int.parse(result['loanAmount'].toString());
-          _loanPeriodResult = int.parse(result['loanPeriod'].toString());
-        } else {
-          _loanAmountResult = _loanAmount;
-          _loanPeriodResult = _loanPeriod;
-        }
-        _errorMessage = result['errorMessage'].toString();
-      });
+        setState(() {
+          int tempAmount = int.parse(result['loanAmount'].toString());
+          int tempPeriod = int.parse(result['loanPeriod'].toString());
+
+          if (tempAmount <= _loanAmount || tempPeriod > _loanPeriod) {
+            _loanAmountResult = tempAmount;
+            _loanPeriodResult = tempPeriod;
+          } else {
+            _loanAmountResult = _loanAmount;
+            _loanPeriodResult = _loanPeriod;
+          }
+          _errorMessage = result['errorMessage'].toString();
+        });
+      } else {
+        setState(() {
+          _errorMessage = 'Age must be between 18 and 80 for loan application';
+        });
+      }
     } else {
       _loanAmountResult = 0;
       _loanPeriodResult = 0;
+      _errorMessage = '';
     }
   }
 
